@@ -3,6 +3,7 @@
 ## 1. 前提条件
 * Keycloak が `http://localhost:8080` で稼働している
 * 管理者アカウントで **Admin Console** にログインできる
+* （任意）curl または VS Code の Thunder Client が使える
 
 ---
 
@@ -10,10 +11,7 @@
 
 ### ■ なぜ必要？
 
-**Realm（レルム）** は「独立した認証のグループ（テナント）」です。  
-1つの Keycloak サーバーに複数の Realm を作成でき、それぞれ別々のユーザーやクライアントを管理できます。
-
-例えば「開発用」「本番用」を分けて運用することも可能です。
+**Realm（レルム）** は、ユーザーやクライアント、認証設定をまとめる独立した認証のグループ（テナント）です。1台の Keycloak に複数作れます（例：開発／本番の分離）。
 
 ### ■ 手順
 1. 左メニューの **Manage realms** → **Create realm**
@@ -22,7 +20,7 @@
 
 3. **Create** を押下
 
-> 今後の手順では、この Realm 名を test-realm として説明します。
+> 今後の手順では、この Realm 名を `test-realm` として説明します。
 
 ---
 
@@ -30,38 +28,39 @@
 
 ### ■ なぜ必要？
 
-**Client（クライアント）** は「Keycloak にログイン認証を依頼するアプリケーション」です。
-WebアプリやバックエンドAPIなど、Keycloak を使いたいシステムごとに Client を作成します。
+**Client（クライアント）** は「Keycloak にログインやトークン発行を依頼するアプリ」です。  
 
-ここではテスト用クライアントを作成し、トークンを取得できるようにします。
+ここでは 2つの取得方法を試せるように設定します：
+* **Client Credentials**（アプリ同士の認証／サービス間）
+* **ROPC**（ユーザー名＋パスワードで直接取得：テスト用途）
 
 ### ■ 手順
-1. 左メニューの **Clients** → **Create client**
+1. 左メニュー **Clients** → **Create client**
 
 2. 入力項目
-   * **Client type**: `OpenID Connect`  
-    → 一般的な認証規格（OIDC）を使用する
+   * **Client type**: `OpenID Connect`
    * **Client ID**: 例 `test-client`
-    → アプリを識別するためのID（接続時に利用）
    * **Name**: 任意（表示名）
 
 3. **Next**
 
 4. **Capability config** の設定
-   * **Client authentication**: **On**
-     → クライアント自身が「秘密鍵（secret）」で認証する設定
-   * **Authorization**: **On**
-     → 認可機能を有効化（誰がどのリソースにアクセスできるか）
-   * **Standard flow**: **On**
-     → Webアプリのログインで使われる「認可コードフロー」を有効化
-   * **Direct access grants**: 任意（パスワード認証を使う場合のみ On）
-     → ユーザー名＋パスワードを直接送ってトークンを取得する方式（テスト用）
+   * **Client authentication**: **On**（= Confidential クライアント）
+   * **Service accounts**（または **Service accounts roles**）: **On**  
+     ↳ **Client Credentials** を使うために必須
+   * **Direct access grants**: **On**  
+     ↳ **ROPC を使うために必須**
+   * **Authorization**: **Off**（今回は不要：UMA/リソース権限管理を使わない）
+   * **Standard flow**: **Off**（今回は未使用。将来ブラウザログインを試すときに有効化）
+
 
 5. **Next** → **Save**
 
 6. 作成後、**Credentials**タブを開き、**Client secret** を控える
 
-> この設定で `grant_type=client_credentials` を使ってトークンを取得できるようになります。
+### ポイント／注意
+
+* **Standard flow（Auth Code）を後で使う場合**は、**Valid redirect URIs / Web origins** を必ず設定してください（未設定だとエラーになります）。
 
 ---
 
@@ -69,10 +68,7 @@ WebアプリやバックエンドAPIなど、Keycloak を使いたいシステ�
 
 ### ■ なぜ必要？
 
-**User（ユーザー）** は実際にログインする人（あるいはサービスアカウント）です。  
-Keycloak ではユーザーを登録し、パスワードを設定して利用します。
-
-今回は「メール認証なし」でシンプルに作成します。
+実際にログインする**人**です。今回はメール認証なしでシンプルに作成します。
 
 ### ■ 手順
 1. 左メニューの **Users** → **Create new user**
@@ -81,13 +77,13 @@ Keycloak ではユーザーを登録し、パスワードを設定して利用�
    * **Username**: 例 `user1`
    * **Email**: 任意（空でも可）
    * **First / Last name**: 任意
-   * **Email verified**: **On**
-     → メール認証をスキップするため、管理者が「確認済み」とする
+   * **Email verified**: **On**（メール確認を省略）
+   * **User enabled**: **On**（通常は既定で On）
    * **Required user actions**: 空欄
-     → 「Verify Email」などを強制しない
-   * **Create**
+   
+3. **Create**
 
-3. 作成後、**Credentials** タブ → **Set password**
+4. 作成後、**Credentials** タブ → **Set password**
    * 新しいパスワードを入力
    * **Temporary**: **Off**（初回変更を求めない）
    * **Save**
@@ -157,10 +153,10 @@ curl -X POST \
   * `client_secret`: `<控えたシークレット>`
 
 
-### 6-2. Resource Owner Password Credentials Flow（ユーザー認証）
+### 6-2. Resource Owner Password Credentials（ユーザー認証：テスト用途のみ）
 
 ユーザー名とパスワードで直接トークンを取得する方式です。  
-※ テスト用途のみ。本番では推奨されません。
+> 注意：ROPC はセキュリティ上の理由で本番非推奨です（OAuth 2.1 では廃止方向）。本番は **Authorization Code + PKCE** を推奨。
 
 #### curl
 
