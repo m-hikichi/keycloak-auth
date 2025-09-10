@@ -24,15 +24,14 @@
 
 ---
 
-## 3. Client の作成
+## 3. Client の作成（ROPC用）
 
 ### ■ なぜ必要？
 
 **Client（クライアント）** は「Keycloak にログインやトークン発行を依頼するアプリ」です。  
 
-ここでは 2つの取得方法を試せるように設定します：
-* **Client Credentials**（アプリ同士の認証／サービス間）
-* **ROPC**（ユーザー名＋パスワードで直接取得：テスト用途）
+ここでは、**ユーザー名＋パスワードで直接トークンを取得する方式（ROPC: Resource Owner Password Credentials）** を試せるように設定します。  
+⚠️ ROPC はセキュリティ上の理由から本番では非推奨です。テスト用途に限定してください。
 
 ### ■ 手順
 1. 左メニュー **Clients** → **Create client**
@@ -45,9 +44,12 @@
 3. **Next**
 
 4. **Capability config** の設定
-   * **Client authentication**: **On**（= Confidential クライアント）
-   * **Service accounts**（または **Service accounts roles**）: **On**  
-     ↳ **Client Credentials** を使うために必須
+   * **Client authentication**:
+     * サーバー側で動くプログラム（秘密を隠せる）なら → **On**（= Confidential クライアント）
+     * ユーザーのスマホやブラウザで直接動くアプリ（秘密を隠せない）なら → **Off**（Public クライアント）
+   * **Service accounts**（roles）:
+     * Keycloak の Client をユーザーとして扱いたい場合 → **On** 
+     * Keycloak の 通常のユーザー（username / password）でログインする場合 → **Off** でOK
    * **Direct access grants**: **On**  
      ↳ **ROPC を使うために必須**
    * **Authorization**: **Off**（今回は不要：UMA/リソース権限管理を使わない）
@@ -56,7 +58,7 @@
 
 5. **Next** → **Save**
 
-6. 作成後、**Credentials**タブを開き、**Client secret** を控える
+6. 作成後、**Credentials**タブを開き、**Client secret** を控える（Confidential クライアントの場合のみ）
 
 ### ポイント／注意
 
@@ -141,6 +143,8 @@ curl -X POST \
   http://localhost:8080/realms/test-realm/protocol/openid-connect/token
 ```
 
+> Public Client の場合、 client_secret を省略可能です。
+
 #### Thunder Client（VS Code）
 
 * **Method**: POST
@@ -152,6 +156,7 @@ curl -X POST \
   * `client_id`: `test-client`
   * `client_secret`: `<控えたシークレット>`
 
+> Public Client の場合、 client_secret を省略可能です。
 
 ### 6-2. Resource Owner Password Credentials（ユーザー認証：テスト用途のみ）
 
@@ -171,6 +176,8 @@ curl -X POST \
   http://localhost:8080/realms/test-realm/protocol/openid-connect/token
 ```
 
+> Public Client の場合、 client_secret を省略可能です。
+
 #### Thunder Client
 
 * **Method**: POST
@@ -183,3 +190,5 @@ curl -X POST \
   * `client_secret`: `<控えたシークレット>`
   * `username`: `user1`
   * `password`: `<パスワード>`
+
+> Public Client の場合、 client_secret を省略可能です。
