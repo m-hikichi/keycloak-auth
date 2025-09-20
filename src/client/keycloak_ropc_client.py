@@ -108,7 +108,7 @@ class KeycloakClient:
 if __name__ == "__main__":
     # --- 使用例 ---
     client = KeycloakClient(
-        base_url=os.environ["KC_BASE_INTERNAL"],
+        base_url=os.environ["KC_BASE"],
         realm=os.environ["REALM"],
         client_id=os.environ["CLIENT_ID"],
         # client_secret=os.environ["CLIENT_SECRET"],

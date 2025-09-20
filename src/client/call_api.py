@@ -15,7 +15,7 @@ def get_access_token() -> str:
         sys.exit(1)
 
     kc = KeycloakClient(
-        base_url=os.environ["KC_BASE_INTERNAL"],
+        base_url=os.environ["KC_BASE"],
         realm=os.environ["REALM"],
         client_id=os.environ["CLIENT_ID"],
         client_secret=None,

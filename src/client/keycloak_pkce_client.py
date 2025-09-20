@@ -10,8 +10,8 @@ from flask import Flask, abort, jsonify, redirect, request, session
 from jwt import decode as jwt_decode
 
 # ===== 設定 =====
-KC_BASE_PUBLIC = os.environ["KC_BASE_PUBLIC"]
-KC_BASE_INTERNAL = os.environ["KC_BASE_INTERNAL"]
+KC_BASE_PUBLIC = os.environ["KC_BASE"]
+KC_BASE_INTERNAL = os.environ["KC_BASE"]
 REALM = os.environ["REALM"]
 CLIENT_ID = os.environ["CLIENT_ID"]
 REDIRECT_URI = os.environ["REDIRECT_URI"]
