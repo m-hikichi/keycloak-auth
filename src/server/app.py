@@ -7,8 +7,8 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # ====== 設定（環境変数から） ======
-KC_BASE = os.getenv("KC_BASE", "http://keycloak:8080").rstrip("/")
-REALM = os.getenv("REALM", "test-realm")
+KC_BASE = os.environ["KC_BASE"].rstrip("/")
+REALM = os.environ["REALM"]
 # 監査強化したければ AUDIENCE（= クライアントID）を入れて検証する（今回は最小のため未使用）
 # EXPECTED_AUD = os.getenv("AUDIENCE")  # 例: "test-client"
 
@@ -72,7 +72,7 @@ def protected(claims: Dict[str, Any] = Depends(verify_access_token)):
     #  - scope: アクセストークンのスコープ
     #  - realm_access / resource_access: ロール情報
     return {
-        "message": "You are authenticated 🎉",
+        "message": "You are authenticated!",
         "sub": claims.get("sub"),
         "preferred_username": claims.get("preferred_username"),
         "scope": claims.get("scope"),
