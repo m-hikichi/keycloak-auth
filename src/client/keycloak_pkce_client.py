@@ -98,7 +98,24 @@ def refresh_tokens() -> Dict[str, Any]:
 def root():
     user = session.get("user")
     if user:
-        return jsonify({"message": "logged in", "user": user})
+        tokens = session.get("tokens")
+        access_token = tokens.get("access_token")
+
+        # アクセストークンの期限が近ければ自動更新
+        if access_token and is_access_token_expiring_soon(access_token, leeway_seconds=30):
+            try:
+                tokens = refresh_tokens()
+            except Exception as e:
+                # リフレッシュ失敗時は未認証扱い（必要なら session.clear() してもよい）
+                return jsonify({"message": "token refresh failed", "error": str(e)}), 401
+
+        tokens = session.get("tokens", {})
+        return jsonify(
+            {
+                "user": user,
+                "tokens": tokens,
+            }
+        )
 
     # PKCE 開始
     state = secrets.token_urlsafe(16)
@@ -179,32 +196,6 @@ def callback():
     }
 
     return redirect("/")
-
-
-@app.route("/me")
-def me():
-    user = session.get("user")
-    if not user:
-        return jsonify({"message": "not authenticated"}), 401
-
-    tokens = session.get("tokens")
-    access_token = tokens.get("access_token")
-
-    # アクセストークンの期限が近ければ自動更新
-    if access_token and is_access_token_expiring_soon(access_token, leeway_seconds=30):
-        try:
-            tokens = refresh_tokens()
-        except Exception as e:
-            # リフレッシュ失敗時は未認証扱い（必要なら session.clear() してもよい）
-            return jsonify({"message": "token refresh failed", "error": str(e)}), 401
-
-    tokens = session.get("tokens", {})
-    return jsonify(
-        {
-            "user": user,
-            "tokens": tokens,
-        }
-    )
 
 
 if __name__ == "__main__":

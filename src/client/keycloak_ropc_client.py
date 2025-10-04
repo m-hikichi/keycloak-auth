@@ -1,7 +1,10 @@
 import os
+import sys
 
 import requests
 from rich import print
+
+from api_client import ApiError, call_protected_api
 
 
 class TokenAcquisitionError(Exception):
@@ -120,9 +123,21 @@ if __name__ == "__main__":
             os.environ["USERNAME"], os.environ["PASSWORD"]
         )
         print("[bold green]アクセストークンを取得しました:[/]")
-        print(token_data)
+        access_token = token_data.get("access_token")
+        print(f"access_token: {access_token}")
 
-        # 2) リフレッシュトークンで更新
+        # 2) APIの呼び出し
+        try:
+            print("Calling protected API...")
+            response = call_protected_api(access_token)
+            print("[green]API call successful![/green]")
+            print(response)
+        except ApiError as e:
+            print(f"[bold red][API ERROR] {e}[/bold red]", file=sys.stderr)
+            if getattr(e, "details", None):
+                print(f"details: {e.details}", file=sys.stderr)
+
+        # 3) リフレッシュトークンで更新
         refresh_token = token_data.get("refresh_token")
         if not refresh_token:
             print("[yellow]レスポンスに refresh_token が含まれていません。"
