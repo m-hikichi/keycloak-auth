@@ -1,9 +1,42 @@
 services:
-  keycloak:
+  keycloak.localhost:
     image: quay.io/keycloak/keycloak:26.3.3 # https://github.com/keycloak/keycloak
     command: ["start-dev"]
     environment:
+      - KC_HOSTNAME=keycloak.localhost
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
     ports:
       - "8080:8080"
+
+  app:
+    image: python:3.10
+    environment:
+      - KC_BASE=http://keycloak.localhost:8080
+      - REDIRECT_URI=http://keycloak.localhost:8000/auth/callback
+      - REALM=test-realm
+      - CLIENT_ID=test-client
+      - CLIENT_SECRET=
+    working_dir: /workspace/src
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../src/server:/workspace/src
+    tty: true
+    # entrypoint: sh -c "uvicorn app:app --host 0.0.0.0"
+    depends_on:
+      - keycloak.localhost
+
+  client:
+    image: python:3.10
+    environment:
+      - KC_BASE=http://keycloak.localhost:8080
+      - REDIRECT_URI=http://localhost:5000/callback
+      - REALM=test-realm
+      - CLIENT_ID=test-client
+    working_dir: /workspace/src
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../src/client:/workspace/src
+    tty: true
