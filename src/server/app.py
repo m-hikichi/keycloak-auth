@@ -11,6 +11,8 @@ KC_BASE = os.environ["KC_BASE"].rstrip("/")
 REALM = os.environ["REALM"]
 # 監査強化したければ AUDIENCE（= クライアントID）を入れて検証する（今回は最小のため未使用）
 # EXPECTED_AUD = os.getenv("AUDIENCE")  # 例: "test-client"
+# API側クライアントID（audienceとして要求する値）
+API_CLIENT_ID = os.getenv("API_CLIENT_ID", "backend-api")
 
 ISSUER = f"{KC_BASE}/realms/{REALM}"
 JWKS_URL = f"{ISSUER}/protocol/openid-connect/certs"
@@ -54,6 +56,14 @@ def verify_access_token(
             detail=f"Invalid token: {e}",
         )
 
+def has_client_role(claims: Dict[str, Any], client_id: str, role: str) -> bool:
+    roles: List[str] = (
+        (claims.get("resource_access") or {})
+        .get(client_id, {})
+        .get("roles", [])
+    )
+    return role in roles
+
 # ====== ルート ======
 
 @app.get("/health")
@@ -78,3 +88,14 @@ def protected(claims: Dict[str, Any] = Depends(verify_access_token)):
         "scope": claims.get("scope"),
         "realm_roles": (claims.get("realm_access") or {}).get("roles"),
     }
+
+
+@app.get("/authorize")
+def authorize(claims: Dict[str, Any] = Depends(verify_access_token)):
+    """
+    有効なアクセストークン + clientロール `api:owner` が必要
+    付与先クライアントは backend-api（= API_CLIENT_ID）
+    """
+    if not has_client_role(claims, API_CLIENT_ID, "app:owner"):
+        raise HTTPException(status_code=403, detail="Forbidden: missing app:owner")
+    return {"message": "You are authorized for /authorize"}
