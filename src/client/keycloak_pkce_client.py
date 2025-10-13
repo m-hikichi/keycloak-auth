@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 import requests
 from flask import Flask, abort, jsonify, redirect, request, session
 from jwt import decode as jwt_decode
+from api_client import ApiClient, ApiError
 
 # ===== 設定 =====
 KC_BASE = os.environ["KC_BASE"]
@@ -23,6 +24,8 @@ TOKEN_URL = f"{KC_BASE}/realms/{REALM}/protocol/openid-connect/token"
 
 app = Flask(__name__)
 app.config.update(SECRET_KEY=SESSION_SECRET)
+
+api_client = ApiClient()
 
 # ===== ユーティリティ =====
 def b64url_no_pad(b: bytes) -> str:
@@ -196,6 +199,21 @@ def callback():
     }
 
     return redirect("/")
+
+
+@app.route("/authorize")
+def authorize():
+    user = session.get("user")
+    if user:
+        tokens = session.get("tokens")
+        access_token = tokens.get("access_token")
+
+        try:
+            response = api_client.call_api(path="/authorize", access_token=access_token)
+            print("[green]API call successful![/green]")
+            return response
+        except ApiError as e:
+            return jsonify({"error": "API call failed", "details": e.details}), e.status_code or 500
 
 
 if __name__ == "__main__":

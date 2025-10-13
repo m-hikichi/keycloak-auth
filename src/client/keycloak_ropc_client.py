@@ -4,7 +4,7 @@ import sys
 import requests
 from rich import print
 
-from api_client import ApiError, call_protected_api
+from api_client import ApiClient, ApiError
 
 
 class TokenAcquisitionError(Exception):
@@ -110,28 +110,29 @@ class KeycloakClient:
 
 if __name__ == "__main__":
     # --- 使用例 ---
-    client = KeycloakClient(
+    kc_client = KeycloakClient(
         base_url=os.environ["KC_BASE"],
         realm=os.environ["REALM"],
         client_id=os.environ["CLIENT_ID"],
         # client_secret=os.environ["CLIENT_SECRET"],
     )
+    api_client = ApiClient()
 
     try:
         # 1) ユーザー名とパスワードでトークン取得
-        token_data = client.get_token_with_password(
+        token_data = kc_client.get_token_with_password(
             os.environ["USERNAME"], os.environ["PASSWORD"]
         )
         print("[bold green]アクセストークンを取得しました:[/]")
         access_token = token_data.get("access_token")
-        print(f"access_token: {access_token}")
+        # print(f"access_token: {access_token}")
 
         # 2) APIの呼び出し
         try:
             print("Calling protected API...")
-            response = call_protected_api(access_token)
+            response = api_client.call_api(path="/protected", access_token=access_token)
             print("[green]API call successful![/green]")
-            print(response)
+            # print(response)
         except ApiError as e:
             print(f"[bold red][API ERROR] {e}[/bold red]", file=sys.stderr)
             if getattr(e, "details", None):
@@ -143,9 +144,21 @@ if __name__ == "__main__":
             print("[yellow]レスポンスに refresh_token が含まれていません。"
                   "クライアント/Realm 側でリフレッシュトークン発行を許可してください。[/]")
         else:
-            refreshed = client.get_token_with_refresh_token(refresh_token)
+            refreshed = kc_client.get_token_with_refresh_token(refresh_token)
             print("[bold green]リフレッシュトークンで更新しました:[/]")
-            print(refreshed)
+            # print(refreshed)
+
+        # 4) APIの呼び出し
+        access_token = refreshed.get("access_token")
+        try:
+            print("Calling protected API...")
+            response = api_client.call_api(path="/protected", access_token=access_token)
+            print("[green]API call successful![/green]")
+            # print(response)
+        except ApiError as e:
+            print(f"[bold red][API ERROR] {e}[/bold red]", file=sys.stderr)
+            if getattr(e, "details", None):
+                print(f"details: {e.details}", file=sys.stderr)
     
     except TokenAcquisitionError as e:
         print(f"[red]エラー:[/] {e}")
