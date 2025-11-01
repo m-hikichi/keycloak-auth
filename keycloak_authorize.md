@@ -59,7 +59,7 @@
 1. **左メニュー → Clients → web-spa → Client scopes → web-spa-dedicated**
 2. **Configure a new mapper → Audience** を選択
 3. フィールド設定：
-
+   * **Name**: `test-mapper`
    * **Included Client Audience**：`backend-api`
    * **Add to access token**：**ON**
 4. **Save**
@@ -88,7 +88,7 @@
 
    * `Guest` / `Member` / `Owner` など
 2. 各グループを開き、**Role mapping** タブへ
-3. 右側の **Assign role** のプルダウンで **Client roles*** を選択
+3. 右側の **Assign role** のプルダウンで **Client roles** を選択
 4. 表示されたロール一覧から付けたい**ロール（例：`app:guest`）を選択 → Add**
 
    * 例：
