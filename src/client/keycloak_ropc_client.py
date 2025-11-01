@@ -150,9 +150,21 @@ if __name__ == "__main__":
 
         # 4) APIの呼び出し
         access_token = refreshed.get("access_token")
+        # 4.1) /protected
         try:
             print("Calling protected API...")
             response = api_client.call_api(path="/protected", access_token=access_token)
+            print("[green]API call successful![/green]")
+            # print(response)
+        except ApiError as e:
+            print(f"[bold red][API ERROR] {e}[/bold red]", file=sys.stderr)
+            if getattr(e, "details", None):
+                print(f"details: {e.details}", file=sys.stderr)
+
+        # 4.2) /authorize
+        try:
+            print("Calling protected API...")
+            response = api_client.call_api(path="/authorize", access_token=access_token)
             print("[green]API call successful![/green]")
             # print(response)
         except ApiError as e:
